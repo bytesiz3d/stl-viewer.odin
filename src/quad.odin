@@ -9,13 +9,10 @@ import glm  "core:math/linalg/glsl"
 import glfw "vendor:glfw"
 
 window_width, window_height, count_triangles: i32
-window: glfw.WindowHandle
-vao, vbo, ebo, program: u32
-
 main :: proc() {
-	window = create_window()
+	window := create_window()
 
-	load_shaders_and_data()
+	vao, vbo, ebo, program := load_shaders_and_data(window)
 	defer {
 		gl.DeleteBuffers(1, &ebo)
 		gl.DeleteBuffers(1, &vbo)
@@ -29,11 +26,11 @@ main :: proc() {
 
 	for glfw.WindowShouldClose(window) == false {
 		glfw.PollEvents()
-		render()
+		render(window)
 	}
 }
 
-render :: proc() {
+render :: proc(window: glfw.WindowHandle) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.DrawElements(gl.TRIANGLES, count_triangles, gl.UNSIGNED_SHORT, nil)
 	glfw.SwapBuffers(window)
@@ -45,6 +42,7 @@ create_window :: proc() -> glfw.WindowHandle {
 		return nil
 	}
 
+	// OpenGL 4.0
 	glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 4)
 	glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 0)
 	glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
@@ -59,27 +57,32 @@ create_window :: proc() -> glfw.WindowHandle {
 	glfw.MakeContextCurrent(window)
 
 	glfw.SetWindowSizeCallback(window, proc "cdecl" (window: glfw.WindowHandle, width, height: i32) {
+		// Using the default context in a "cdecl" procedure
 		context = runtime.default_context()
 		window_width = width
 		window_height = height
-		gl.Viewport(0, 0, window_width, window_height)
 		fmt.printf("resized ({}x{})\n", window_width, window_height)
-		render()
+
+		gl.Viewport(0, 0, window_width, window_height)
+		render(window)
 	})
 
 	glfw.SetKeyCallback(window, proc "cdecl" (window: glfw.WindowHandle, key, scancode, action, mods: i32) {
 		context = runtime.default_context()
 		if action == glfw.PRESS {
-			fmt.printf("key: {}, scancode: {}\n", key, scancode)
+			fmt.printf("pressed ({})\n", key)
 		}
 	})
 
 	return window
 }
 
-load_shaders_and_data :: proc() {
+load_shaders_and_data :: proc(window: glfw.WindowHandle) -> (vao, vbo, ebo, program: u32) {
+	// Load OpenGL procedures
 	gl.load_up_to(3, 3, glfw.gl_set_proc_address)
-	program, program_ok := gl.load_shaders_source(vertex_source, fragment_source)
+
+	program_ok := false
+	program, program_ok = gl.load_shaders_source(vertex_source, fragment_source)
 	if program_ok == false {
 		log_error("load_shaders_source")
 		return
@@ -104,6 +107,7 @@ load_shaders_and_data :: proc() {
 	}
 	count_triangles = i32(len(indices))
 
+	// Upload data
 	gl.GenVertexArrays(1, &vao)
 	gl.BindVertexArray(vao)
 	
@@ -120,6 +124,7 @@ load_shaders_and_data :: proc() {
 	gl.GenBuffers(1, &ebo)
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
 	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indices)*size_of(indices[0]), raw_data(indices), gl.STATIC_DRAW)
+	return
 }
 
 log_error :: proc(prefix: string) {
@@ -128,7 +133,6 @@ log_error :: proc(prefix: string) {
 }
 
 vertex_source := `#version 400
-
 layout(location=0) in vec3 a_position;
 layout(location=1) in vec4 a_color;
 
@@ -140,7 +144,6 @@ void main() {
 }
 `
 fragment_source := `#version 400
-
 in vec4 v_color;
 out vec4 o_color;
 
