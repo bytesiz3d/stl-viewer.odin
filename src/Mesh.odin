@@ -3,10 +3,16 @@ package main
 import gl  "vendor:OpenGL"
 import glm "core:math/linalg/glsl"
 
+AABB :: struct {
+	min, max: glm.vec3,
+}
+
 Mesh :: struct {
 	vertices: [dynamic]glm.vec3,
 	normals:  [dynamic]glm.vec3,
 	indices:  [dynamic]u32,
+
+	aabb: AABB,
 
 	vb_handle: u32,
 	nb_handle: u32,
@@ -20,17 +26,30 @@ mesh_from_stl :: proc(stl: STL) -> (self: Mesh) {
 	index_map: map[glm.vec3]u32
 	defer delete(index_map)
 
+	self.aabb.min = stl.triangles[0].vertices[0]
+	self.aabb.max = stl.triangles[0].vertices[0]
+
 	for triangle in stl.triangles {
 		for vertex in triangle.vertices {
-			if idx, ok := index_map[vertex]; ok {
-				append(&self.indices, idx)
-			}
-			else {
-				size := u32(len(self.vertices))
-				index_map[vertex] = size
+			if idx, ok := index_map[vertex]; ok == false {
+				new_i := u32(len(self.vertices))
+				index_map[vertex] = new_i
+
+				for i in 0..2 {
+					if vertex[i] < self.aabb.min[i] {
+						self.aabb.min[i] = vertex[i]
+					}
+					else if vertex[i] > self.aabb.max[i] {
+						self.aabb.max[i] = vertex[i]
+					}
+				}
+
 				append(&self.vertices, vertex)
 				append(&self.normals, triangle.normal)
-				append(&self.indices, size)
+				append(&self.indices, new_i)
+			}
+			else {
+				append(&self.indices, idx)
 			}
 		}
 	}

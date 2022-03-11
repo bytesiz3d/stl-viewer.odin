@@ -1,6 +1,6 @@
 package main
 
-import win "core:sys/win32"
+import win32 "core:sys/win32"
 
 import gl   "vendor:OpenGL"
 import glm  "core:math/linalg/glsl"
@@ -10,7 +10,7 @@ uniforms: map[string]gl.Uniform_Info
 
 _main :: proc() {
 	stl: STL
-	if path, ok := win.select_file_to_open(filters={ "STL Files", "*.STL" }); ok == false {
+	if path, ok := win32.select_file_to_open(filters={ "STL Files", "*.STL" }); ok == false {
 		return
 	}
 	else {
@@ -21,6 +21,7 @@ _main :: proc() {
 	}
 
 	camera = camera_new()
+	camera_fit_aabb(&camera, mesh.aabb)
 
 	window := window_new()
 	defer glfw.Terminate()

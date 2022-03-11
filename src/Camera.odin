@@ -8,6 +8,8 @@ Camera :: struct {
 	centre: glm.vec3,   // target
 	up:     glm.vec4,   // up
 
+	eye_0:  glm.vec4,   // initial eye
+
 	yaw_sens:   f32,
 	pitch_sens: f32,
 	zoom_sens: 	f32,
@@ -20,14 +22,27 @@ camera_new :: proc() -> (self: Camera) {
 	self.yaw_sens   = 0.003
 	self.pitch_sens = 0.004
 	self.zoom_sens  = 0.05
+	self.eye_0      = {0, 0.75, 5, 1}
 
 	camera_reset(&self)
 	return
 }
 
 camera_reset :: proc(self: ^Camera) {
-	self.eye = {0, 0.75, 10, 1}
-	self.up  = {0, 1, 0, 1}
+	self.eye = self.eye_0
+
+	right := glm.vec3{0, 1, 0}
+	up    := glm.normalize(glm.cross(right, self.centre - self.eye.xyz))
+
+	self.up  = {0, 0, 0, 1}
+	self.up.xyz = ([3]f32)(up)
+}
+
+camera_fit_aabb :: proc(self: ^Camera, aabb: AABB) {
+	scaled_eye := (aabb.max - aabb.min) * 0.75
+	self.eye_0.xyz = ([3]f32)(scaled_eye)
+
+	camera_reset(self)
 }
 
 camera_update :: proc(self: ^Camera, using input: Input) -> (updated: bool) {
@@ -44,10 +59,10 @@ camera_update :: proc(self: ^Camera, using input: Input) -> (updated: bool) {
 		yaw           := -f32(mouse_delta.x) * self.yaw_sens
 		yaw_transform := glm.mat4Rotate(self.up.xyz, yaw)
 
-		// angle around right
 		right := glm.cross(self.centre - self.eye.xyz, glm.vec3(self.up.xyz))
 
-		pitch           := clamp(-f32(mouse_delta.y) * self.pitch_sens, -glm.PI/2, glm.PI/2)
+		// angle around right
+		pitch           := -f32(mouse_delta.y) * self.pitch_sens
 		pitch_transform := glm.mat4Rotate(right, pitch)
 
 		self.eye = pitch_transform * yaw_transform * self.eye
