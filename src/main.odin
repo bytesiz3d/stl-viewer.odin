@@ -8,8 +8,8 @@ import glfw "vendor:glfw"
 
 _main :: proc() {
 	if path, ok := win32.select_file_to_open(
-		filters={ "STL Files", "*.STL" },
-		flags=win32.OPEN_FLAGS | win32.OFN_NOCHANGEDIR,
+		filters = { "STL Files", "*.STL" },
+		flags   = win32.OPEN_FLAGS | win32.OFN_NOCHANGEDIR,
 	); ok == false {
 		return
 	}

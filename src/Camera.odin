@@ -84,13 +84,19 @@ camera_model :: proc(self: Camera) -> glm.mat4 {
 }
 
 camera_view_projection :: proc(self: Camera) -> glm.mat4 {
+	distance := 1 / glm.distance(self.centre, glm.vec3(self.eye.xyz))
+	scale := glm.mat4Scale({distance, distance, distance})
+
 	view := glm.mat4LookAt(self.eye.xyz, self.centre, self.up.xyz)
 
-	FOV  :: 180.0/2
-	NEAR :: 0.001
-	FAR  :: 1000.0
+	projection := glm.mat4Ortho3d(
+		left   = -self.aspect_ratio,
+		right  = self.aspect_ratio,
+		bottom = -1.0,
+		top    = 1.0,
+		near   = 0.001,
+		far    = 1000.0,
+	)
 
-	projection := glm.mat4Perspective(FOV, self.aspect_ratio, NEAR, FAR)
-
-	return projection * view
+	return projection * view * scale
 }
