@@ -10,14 +10,15 @@ AABB :: struct {
 Mesh :: struct {
 	vertices: [dynamic]glm.vec3,
 	normals:  [dynamic]glm.vec3,
-	indices:  [dynamic]u32,
+	bccs:	  [dynamic]glm.vec3,
 
 	aabb: AABB,
 
 	vb_handle: u32,
 	nb_handle: u32,
-	eb_handle: u32,
+	bb_handle: u32,
 
+	vertex_count: u32,
 	vertex_array: u32,
 }
 mesh: Mesh
@@ -29,12 +30,12 @@ mesh_from_stl :: proc(stl: STL) -> (self: Mesh) {
 	self.aabb.min = stl.triangles[0].vertices[0]
 	self.aabb.max = stl.triangles[0].vertices[0]
 
-	for triangle in stl.triangles {
-		for vertex in triangle.vertices {
-			if idx, ok := index_map[vertex]; ok == false {
-				new_i := u32(len(self.vertices))
-				index_map[vertex] = new_i
+	bccs: [3]glm.vec3 = {
+		{1, 0, 0}, {0, 1, 0}, {0, 0, 1},
+	}
 
+	for triangle in stl.triangles {
+		for vertex, i in triangle.vertices {
 				for i in 0..2 {
 					if vertex[i] < self.aabb.min[i] {
 						self.aabb.min[i] = vertex[i]
@@ -44,16 +45,13 @@ mesh_from_stl :: proc(stl: STL) -> (self: Mesh) {
 					}
 				}
 
-				append(&self.vertices, vertex)
-				append(&self.normals, triangle.normal)
-				append(&self.indices, new_i)
-			}
-			else {
-				append(&self.indices, idx)
-			}
+			append(&self.vertices, vertex)
+			append(&self.normals, triangle.normal)
+			append(&self.bccs, bccs[i])
 		}
 	}
 
+	self.vertex_count = u32(len(self.vertices))
 	return
 }
 
@@ -76,22 +74,25 @@ mesh_upload :: proc(self: ^Mesh) {
 	gl.VertexAttribPointer(SHADER_LOC_NORMAL, 3, gl.FLOAT, false, size_of(self.normals[0]), 0)
 	gl.EnableVertexAttribArray(SHADER_LOC_NORMAL)
 	delete(self.normals)
-	
-	buffer_data(&self.eb_handle, self.indices, gl.ELEMENT_ARRAY_BUFFER)
-	gl.BindVertexArray(0)
-	delete(self.indices)
+
+	buffer_data(&self.bb_handle, self.bccs, gl.ARRAY_BUFFER)
+	gl.VertexAttribPointer(SHADER_LOC_BARYCENTRIC, 3, gl.FLOAT, false, size_of(self.bccs[0]), 0)
+	gl.EnableVertexAttribArray(SHADER_LOC_BARYCENTRIC)
+	delete(self.bccs)
 }
 
 mesh_draw :: proc(self: Mesh) {
 	gl.BindVertexArray(self.vertex_array)
-	gl.DrawElements(gl.TRIANGLES, i32(len(self.indices)), gl.UNSIGNED_INT, nil)
+
+	gl.DrawArrays(gl.TRIANGLES, 0, i32(self.vertex_count))
+
 	gl.BindVertexArray(0)
 }
 
 mesh_free :: proc(self: ^Mesh) {
 	gl.DeleteBuffers(1, &self.vb_handle)
 	gl.DeleteBuffers(1, &self.nb_handle)
-	gl.DeleteBuffers(1, &self.eb_handle)
+	gl.DeleteBuffers(1, &self.bb_handle)
 
 	gl.DeleteVertexArrays(1, &self.vertex_array)
 }

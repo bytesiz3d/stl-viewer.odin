@@ -33,6 +33,7 @@ window_new :: proc() -> glfw.WindowHandle {
 	glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 0)
 	glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
 	glfw.WindowHint(glfw.RESIZABLE, 1)
+	glfw.WindowHint(glfw.SAMPLES, 8)
 
 	window_width, window_height: i32 = 1280, 720
 	camera.aspect_ratio = f32(window_width)/f32(window_height)
@@ -56,6 +57,8 @@ window_new :: proc() -> glfw.WindowHandle {
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LESS)
 
+	gl.Enable(gl.MULTISAMPLE)
+
 	glfw.SetWindowSizeCallback(window, proc "cdecl" (window: glfw.WindowHandle, width, height: i32) {
 		// Using the default context in a "cdecl" procedure
 		context = runtime.default_context()
@@ -63,7 +66,7 @@ window_new :: proc() -> glfw.WindowHandle {
 
 		camera.aspect_ratio = f32(width)/f32(height)
 
-		update_uniforms()
+		shader_update_uniforms(wireframe)
 		render(window)
 	})
 

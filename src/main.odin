@@ -6,42 +6,30 @@ import gl   "vendor:OpenGL"
 import glm  "core:math/linalg/glsl"
 import glfw "vendor:glfw"
 
-uniforms: map[string]gl.Uniform_Info
-
 _main :: proc() {
-	stl: STL
-	if path, ok := win32.select_file_to_open(filters={ "STL Files", "*.STL" }); ok == false {
+	if path, ok := win32.select_file_to_open(
+		filters={ "STL Files", "*.STL" },
+		flags=win32.OPEN_FLAGS | win32.OFN_NOCHANGEDIR,
+	); ok == false {
 		return
 	}
 	else {
-		stl = stl_read(path)
+		stl := stl_read(path)
 		defer stl_free(&stl)
 
 		mesh = mesh_from_stl(stl)
 	}
 
 	camera = camera_new()
-	camera_fit_aabb(&camera, mesh.aabb)
 
 	window := window_new()
 	defer glfw.Terminate()
 
-	program, program_ok := gl.load_shaders_source(vertex_source, fragment_source)
-	if program_ok == false {
-		log_error("load_shaders_source")
-		return
-	}
-	gl.UseProgram(program)
-	defer gl.DeleteProgram(program)
+	wireframe = shader_new()
+	defer shader_free(&wireframe)
 
-	uniforms = gl.get_uniforms_from_program(program)
-	defer {
-		for _, uniform in uniforms {
-			delete(uniform.name)
-		}
-		delete(uniforms)
-	}	
-	update_uniforms()
+	camera_fit_aabb(&camera, mesh.aabb)
+	shader_update_uniforms(wireframe)
 
 	mesh_upload(&mesh)
 	defer mesh_free(&mesh)
@@ -50,7 +38,7 @@ _main :: proc() {
 		glfw.PollEvents()
 
 		if camera_update(&camera, input) {
-			update_uniforms()
+			shader_update_uniforms(wireframe)
 		}
 		input_reset(&input)
 
@@ -64,12 +52,4 @@ render :: proc(window: glfw.WindowHandle) {
 	mesh_draw(mesh)
 
 	glfw.SwapBuffers(window)
-}
-
-update_uniforms :: proc() {
-	model := camera_model(camera)
-	gl.UniformMatrix4fv(uniforms[SHADER_U_MODEL].location, 1, false, &model[0, 0])
-
-	view_projection := camera_view_projection(camera)
-	gl.UniformMatrix4fv(uniforms[SHADER_U_VP].location, 1, false, &view_projection[0, 0])
 }
