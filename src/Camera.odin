@@ -21,7 +21,7 @@ camera: Camera
 camera_new :: proc() -> (self: Camera) {
 	self.yaw_sens   = 0.003
 	self.pitch_sens = 0.004
-	self.zoom_sens  = 0.05
+	self.zoom_sens  = 0.005
 	self.eye_0      = {0, 0.75, 5, 1}
 
 	camera_reset(&self)
@@ -47,7 +47,7 @@ camera_fit_aabb :: proc(self: ^Camera, aabb: AABB) {
 
 camera_update :: proc(self: ^Camera, using input: Input) -> (updated: bool) {
 	if scroll_delta != 0.0 {
-		eye_delta := f32(scroll_delta) * self.zoom_sens * (self.centre - self.eye.xyz)
+		eye_delta := f32(scroll_delta) * 10 * self.zoom_sens * (self.centre - self.eye.xyz)
 		eye_transform := glm.mat4Translate(eye_delta)
 		self.eye = eye_transform * self.eye
 
@@ -55,18 +55,29 @@ camera_update :: proc(self: ^Camera, using input: Input) -> (updated: bool) {
 	}
 
 	if mouse_pressed[glfw.MOUSE_BUTTON_RIGHT] {
-		// angle around up
-		yaw           := -f32(mouse_delta.x) * self.yaw_sens
-		yaw_transform := glm.mat4Rotate(self.up.xyz, yaw)
+		switch {
+		case keys_pressed[glfw.KEY_LEFT_CONTROL], keys_pressed[glfw.KEY_RIGHT_CONTROL]:
+			// Zoom in/out
+			eye_delta := f32(mouse_delta.y) * self.zoom_sens * (self.centre - self.eye.xyz)
+			eye_transform := glm.mat4Translate(eye_delta)
+			self.eye = eye_transform * self.eye
+		
+		
+		case:
+			// Move camera around
+			// angle around up
+			yaw           := -f32(mouse_delta.x) * self.yaw_sens
+			yaw_transform := glm.mat4Rotate(self.up.xyz, yaw)
 
-		right := glm.cross(self.centre - self.eye.xyz, glm.vec3(self.up.xyz))
+			right := glm.cross(self.centre - self.eye.xyz, glm.vec3(self.up.xyz))
 
-		// angle around right
-		pitch           := -f32(mouse_delta.y) * self.pitch_sens
-		pitch_transform := glm.mat4Rotate(right, pitch)
+			// angle around right
+			pitch           := -f32(mouse_delta.y) * self.pitch_sens
+			pitch_transform := glm.mat4Rotate(right, pitch)
 
-		self.eye = pitch_transform * yaw_transform * self.eye
-		self.up  = pitch_transform * yaw_transform * self.up
+			self.eye = pitch_transform * yaw_transform * self.eye
+			self.up  = pitch_transform * yaw_transform * self.up
+		}
 
 		updated = true
 	}

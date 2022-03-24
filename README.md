@@ -2,6 +2,6 @@
 Learning [Odin](https://odin-lang.org/).
 
 # Controls
-- `Right Mouse Button` pan
-- `Mouse Wheel` zoom
+- `RMB` pan
+- `Mouse Wheel/CTRL+RMB` zoom
 - `SPACE` reset camera

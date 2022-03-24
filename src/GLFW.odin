@@ -20,7 +20,6 @@ input: Input
 input_reset :: proc(input: ^Input) {
 	input.mouse_delta = {}
 	input.scroll_delta = {}
-	input.keys_pressed = {}
 }
 
 window_new :: proc() -> glfw.WindowHandle {
@@ -72,8 +71,11 @@ window_new :: proc() -> glfw.WindowHandle {
 
 	glfw.SetKeyCallback(window, proc "cdecl" (window: glfw.WindowHandle, key, scancode, action, mods: i32) {
 		context = runtime.default_context()
-		if action == glfw.PRESS {
+		switch action {
+		case glfw.PRESS:
 			input.keys_pressed[key] = true
+		case glfw.RELEASE:
+			input.keys_pressed[key] = false
 		}
 	})
 
