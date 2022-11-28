@@ -32,7 +32,7 @@ _parse_string :: proc(reader: ^strings.Reader, out: ^string) {
 
 @(private="file")
 _parse_vec3 :: proc(reader: ^strings.Reader, out: ^glm.vec3) {
-	for i in 0..2 {
+	for i in 0..=2 {
 		word := _read_to_whitespace(reader)
 		defer delete(word)
 
@@ -46,7 +46,7 @@ _parse_vec3 :: proc(reader: ^strings.Reader, out: ^glm.vec3) {
 _read_to_whitespace :: proc(reader: ^strings.Reader) -> string {
 	using strings
 	builder: Builder
-	defer destroy_builder(&builder)
+	defer builder_destroy(&builder)
 
 	// Skip leading whitespace
 	for {
@@ -61,7 +61,7 @@ _read_to_whitespace :: proc(reader: ^strings.Reader) -> string {
 	for {
 		if r, count, err := reader_read_rune(reader); err == nil {
 			if is_ascii_space(r) == false { 
-				write_rune_builder(&builder, r)
+				write_rune(&builder, r)
 			}
 			else {
 				break

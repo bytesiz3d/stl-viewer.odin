@@ -5,23 +5,13 @@ import fp "core:path/filepath"
 import gl  "vendor:OpenGL"
 import glm "core:math/linalg/glsl"
 
-SHADER_LOC_POSITION    :: 0
-SHADER_LOC_NORMAL      :: 1
-SHADER_LOC_BARYCENTRIC :: 2
-
-SHADER_U_MODEL      :: "u_model"
-SHADER_U_VP         :: "u_view_projection"
-SHADER_U_LINE_WIDTH :: "u_line_width"
-SHADER_U_MESH_COLOR :: "u_mesh_color"
-
 Shader :: struct {
 	program: u32,
 	uniforms: map[string]gl.Uniform_Info,
 }
-wireframe: Shader
-
-shader_new :: proc() -> (self: Shader) {
-	if program, ok := gl.load_shaders_file("shaders/wireframe.vert", "shaders/wireframe.frag"); ok == false {
+shader_new :: proc(vs_path, fs_path: string) -> (self: Shader) {
+	if program, ok := gl.load_shaders_file(vs_path, fs_path); ok == false {
+		// TODO: Error log
 		return
 	}
 	else {
@@ -34,18 +24,27 @@ shader_new :: proc() -> (self: Shader) {
 	return
 }
 
-shader_update_uniforms :: proc(using self: Shader) {
+shader_wireframe: Shader
+shader_wireframe_update_uniforms :: proc(using self: Shader, camera: Camera) {
+	gl.UseProgram(program)
+
 	mesh_color: glm.vec3 = {0.7, 0.7, 0.7}
-	gl.Uniform3fv(uniforms[SHADER_U_MESH_COLOR].location, 1, &mesh_color[0])
+	gl.Uniform3fv(uniforms["u_mesh_color"].location, 1, &mesh_color[0])
 
 	line_width: f32 = 0.7
-	gl.Uniform1f(uniforms[SHADER_U_LINE_WIDTH].location, line_width)
+	gl.Uniform1f(uniforms["u_line_width"].location, line_width)
 
 	model := camera_model(camera)
-	gl.UniformMatrix4fv(uniforms[SHADER_U_MODEL].location, 1, false, &model[0, 0])
+	gl.UniformMatrix4fv(uniforms["u_model"].location, 1, false, &model[0, 0])
 
 	view_projection := camera_view_projection(camera)
-	gl.UniformMatrix4fv(uniforms[SHADER_U_VP].location, 1, false, &view_projection[0, 0])
+	gl.UniformMatrix4fv(uniforms["u_view_projection"].location, 1, false, &view_projection[0, 0])
+}
+
+shader_atlas: Shader
+shader_atlas_update_uniforms :: proc(using self: Shader, color: [4]f32) {
+	gl.UseProgram(program)
+	gl.Uniform4f(uniforms["u_color"].location, color.r, color.g, color.b, color.a)
 }
 
 shader_free :: proc(self: ^Shader) {

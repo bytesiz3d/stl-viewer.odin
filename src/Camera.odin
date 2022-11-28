@@ -15,8 +15,9 @@ Camera :: struct {
 	zoom_sens: 	f32,
 
 	aspect_ratio: f32,
+	width, height: i32,
 }
-camera: Camera
+g_camera: Camera
 
 camera_new :: proc() -> (self: Camera) {
 	self.yaw_sens   = 0.003
@@ -61,8 +62,7 @@ camera_update :: proc(self: ^Camera, using input: Input) -> (updated: bool) {
 			eye_delta := f32(mouse_delta.y) * self.zoom_sens * (self.centre - self.eye.xyz)
 			eye_transform := glm.mat4Translate(eye_delta)
 			self.eye = eye_transform * self.eye
-		
-		
+
 		case:
 			// Move camera around
 			// angle around up
@@ -110,4 +110,20 @@ camera_view_projection :: proc(self: Camera) -> glm.mat4 {
 	)
 
 	return projection * view * scale
+}
+
+camera_projection :: proc(self: Camera) -> glm.mat4 {
+	return glm.mat4Ortho3d(
+		left   = -self.aspect_ratio,
+		right  = self.aspect_ratio,
+		bottom = -1.0,
+		top    = 1.0,
+		near   = 0.001,
+		far    = 1000.0,
+	)
+}
+
+camera_screen_to_ndc :: proc(self: Camera) -> glm.mat4 {
+	screen_to_2x2 := glm.mat4Scale({2 / f32(self.width), -2 / f32(self.height), 1})
+	return glm.mat4Translate({-1, 1, 0}) * screen_to_2x2
 }

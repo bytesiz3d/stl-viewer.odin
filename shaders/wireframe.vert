@@ -8,7 +8,9 @@ out vec3 v_barycentric;
 uniform mat4 u_model;
 uniform mat4 u_view_projection;
 
-void main() {	
+void
+main()
+{
 	gl_Position = u_view_projection * u_model * vec4(a_position, 1.0f);
 	v_barycentric = a_barycentric;
 }

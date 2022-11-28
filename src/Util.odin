@@ -19,9 +19,9 @@ main :: proc() {
 	_main()
 
 	for _, leak in track.allocation_map {
-		fmt.printf("%v leaked %v bytes\n", leak.location, leak.size)
+		fmt.eprintf("%v leaked %v bytes\n", leak.location, leak.size)
 	}
 	for bad_free in track.bad_free_array {
-		fmt.printf("%v allocation %p was freed badly\n", bad_free.location, bad_free.memory)
+		fmt.eprintf("%v allocation %p was freed badly\n", bad_free.location, bad_free.memory)
 	}
 }

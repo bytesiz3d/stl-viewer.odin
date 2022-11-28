@@ -11,7 +11,8 @@ Triangle :: struct {
     vertices: [3]glm.vec3,
 }
 
-generate_normal :: proc(vertices: [3]glm.vec3) -> (normal: glm.vec3) {
+@(private="file")
+_generate_normal :: proc(vertices: [3]glm.vec3) -> (normal: glm.vec3) {
 	XY := vertices.y - vertices.x
 	YZ := vertices.z - vertices.y
 
@@ -56,7 +57,7 @@ _stl_read_ascii :: proc(stl_data: string) -> (self: STL) {
 			ENDLOOP, ENDFACET)
 
 		if t.normal == {} {
-			t.normal = generate_normal(t.vertices)
+			t.normal = _generate_normal(t.vertices)
 		}
 		append(&self.triangles, t)
 	}
@@ -83,7 +84,7 @@ _stl_read_binary :: proc(stl_data: []byte) -> (self: STL) {
 		binary_read_variadic(&reader, t, ATTRIBUTE_BYTE_COUNT)
 
 		if t.normal == {} {
-			t.normal = generate_normal(t.vertices)
+			t.normal = _generate_normal(t.vertices)
 		}
 		append(&self.triangles, t)
 	}
